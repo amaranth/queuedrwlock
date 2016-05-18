@@ -1,0 +1,10 @@
+[package]
+name = "queuedrwlock"
+version = "0.1.0"
+authors = ["Travis Watkins <amaranth@ubuntu.com>"]
+license = "MIT/Apache-2.0"
+description = "RwLock that implements a FIFO queue for the write lock via ticket locks"
+repository = "https://github.com/amaranth/queuedrwlock"
+
+[dependencies]
+poison = "0.1"
