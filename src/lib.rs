@@ -21,7 +21,7 @@ mod raw;
 /// RwLock that implements a FIFO queue for the write lock via ticket locks
 pub struct QueuedRwLock<T> {
     inner: RawQueuedRwLock,
-    data: UnsafeCell<Poison<T>>
+    data: UnsafeCell<Poison<T>>,
 }
 
 unsafe impl<T: Send> Send for QueuedRwLock<T> {}
@@ -73,9 +73,8 @@ impl<T> QueuedRwLock<T> {
     }
 
     pub fn get_mut(&mut self) -> LockResult<&mut T> {
-        poison::map_result(unsafe { &mut *self.data.get() }.lock(), |guard| {
-            unsafe { guard.into_mut() }
-        })
+        poison::map_result(unsafe { &mut *self.data.get() }.lock(),
+                           |guard| { unsafe { guard.into_mut() } })
     }
 }
 
@@ -84,9 +83,11 @@ impl<T: fmt::Debug> fmt::Debug for QueuedRwLock<T> {
         match self.try_read() {
             Ok(guard) => write!(f, "QueuedRwLock {{ data: {:?} }}", &*guard),
             Err(TryLockError::Poisoned(err)) => {
-                write!(f, "QueuedRwLock {{ data: Poisoned({:?}) }}", &**err.get_ref())
-            },
-            Err(TryLockError::WouldBlock) => write!(f, "QueuedRwLock {{ <locked> }}")
+                write!(f,
+                       "QueuedRwLock {{ data: Poisoned({:?}) }}",
+                       &**err.get_ref())
+            }
+            Err(TryLockError::WouldBlock) => write!(f, "QueuedRwLock {{ <locked> }}"),
         }
     }
 }
@@ -114,11 +115,15 @@ unsafe impl<'a, T: Sync> Sync for QueuedRwLockReadGuard<'a, T> {}
 impl<'a, T> Deref for QueuedRwLockReadGuard<'a, T> {
     type Target = T;
 
-    fn deref(&self) -> &T { self.data }
+    fn deref(&self) -> &T {
+        self.data
+    }
 }
 
 impl<'a, T> Drop for QueuedRwLockReadGuard<'a, T> {
-    fn drop(&mut self) { self.lock.inner.read_unlock() }
+    fn drop(&mut self) {
+        self.lock.inner.read_unlock()
+    }
 }
 
 #[must_use]
@@ -128,7 +133,8 @@ pub struct QueuedRwLockWriteGuard<'a, T: 'a> {
 }
 
 impl<'a, T> QueuedRwLockWriteGuard<'a, T> {
-    unsafe fn new(ticket: QueuedRwLockTicketGuard<'a, T>) -> LockResult<QueuedRwLockWriteGuard<'a, T>> {
+    unsafe fn new(ticket: QueuedRwLockTicketGuard<'a, T>)
+                  -> LockResult<QueuedRwLockWriteGuard<'a, T>> {
         let result = poison::map_result((*ticket.lock.data.get()).lock(), |data| {
             QueuedRwLockWriteGuard {
                 lock: ticket.lock,
@@ -148,15 +154,21 @@ unsafe impl<'a, T: Sync> Sync for QueuedRwLockWriteGuard<'a, T> {}
 impl<'a, T> Deref for QueuedRwLockWriteGuard<'a, T> {
     type Target = T;
 
-    fn deref(&self) -> &T { self.data.get() }
+    fn deref(&self) -> &T {
+        self.data.get()
+    }
 }
 
 impl<'a, T> DerefMut for QueuedRwLockWriteGuard<'a, T> {
-    fn deref_mut(&mut self) -> &mut T { self.data.get_mut() }
+    fn deref_mut(&mut self) -> &mut T {
+        self.data.get_mut()
+    }
 }
 
 impl<'a, T> Drop for QueuedRwLockWriteGuard<'a, T> {
-    fn drop(&mut self) { self.lock.inner.write_unlock() }
+    fn drop(&mut self) {
+        self.lock.inner.write_unlock()
+    }
 }
 
 #[must_use]
@@ -213,7 +225,10 @@ mod tests {
         let read_result = lock.try_read();
         match read_result {
             Err(TryLockError::WouldBlock) => (),
-            Ok(_) => assert!(false, "try_read should not succeed while write_guard is in scope"),
+            Ok(_) => {
+                assert!(false,
+                        "try_read should not succeed while write_guard is in scope")
+            }
             Err(_) => assert!(false, "unexpected error"),
         }
 
@@ -228,7 +243,10 @@ mod tests {
         let write_result = lock.try_write();
         match write_result {
             Err(TryLockError::WouldBlock) => (),
-            Ok(_) => assert!(false, "try_write should not succeed while read_guard is in scope"),
+            Ok(_) => {
+                assert!(false,
+                        "try_write should not succeed while read_guard is in scope")
+            }
             Err(_) => assert!(false, "unexpected error"),
         }
 
